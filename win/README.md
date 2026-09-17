@@ -5,6 +5,7 @@
 - [Windows build scripts for GDAL](#windows-build-scripts-for-gdal)
   * [Prerequisites:](#prerequisites)
   * [Building: (in PowerShell)](#building-in-powershell)
+  * [Platform notes:](#platform-notes)
   * [Troubleshooting dependencies:](#troubleshooting-dependencies)
 
 Table of contents generated with [markdown-toc](http://ecotrust-canada.github.io/markdown-toc/).
@@ -46,6 +47,17 @@ On CI, cache-warm runs restore the VCPKG archive cache separately from the Windo
 
 2. Call `./test.ps1` to test runtime and core packages. <br/> 
 If everything runs smoothly, you can use a local nuget feed to include packages in your project.
+
+### Platform notes:
+
+- **PostgreSQL/PostGIS drivers are not built on Windows.** GDAL is configured with
+  `-DGDAL_USE_POSTGRESQL=OFF` here, so the `PostgreSQL` and `PostGISRaster` drivers are
+  absent from the Windows runtime package (they remain available on Linux and macOS).
+  The reason is provenance: `../shared/vcpkg.json` has no `libpq` in its `windows-dynamic`
+  feature, so CMake resolved PostgreSQL against the frozen GisInternals SDK and the
+  package ended up shipping that SDK's outdated `LIBPQ.dll`. The `PGDump` (SQL dump) and
+  `PGeo` (ODBC) drivers do not use libpq and are still available.
+  See [issue #241](https://github.com/MaxRev-Dev/gdal.netcore/issues/241).
 
 ### Troubleshooting dependencies:
 Use **dumpbin** or [**dependency walker**](https://www.dependencywalker.com/) to check gdal's dependencies. Please ensure the tests are passing before bringing them to prod.

@@ -391,6 +391,15 @@ function Build-Gdal {
     # disabling KEA driver as it causes build issues on Windows
     # https://github.com/OSGeo/gdal/blob/3b232ee17d8f3d93bf3535b77fbb436cb9a9c2e0/.github/workflows/windows_build.yml#L178
 
+    # PostgreSQL is disabled on Windows on purpose. Unlike Linux and macOS, where libpq
+    # comes from the vcpkg manifest, the Windows build has no libpq in shared/vcpkg.json,
+    # so CMake resolved PostgreSQL against the frozen GisInternals SDK and we shipped that
+    # SDK's LIBPQ.dll (PostgreSQL 14 branch, unpatched) inside the runtime package, which
+    # is what security scanners flag on consumers of MaxRev.Gdal.WindowsRuntime.Minimal.
+    # Turning the dependency off drops the PostgreSQL/PostGIS and PostGISRaster drivers
+    # from the Windows package and takes LIBPQ.dll out of it. PGDump (no libpq) and PGeo
+    # (ODBC) are unaffected. See https://github.com/MaxRev-Dev/gdal.netcore/issues/241
+
     # for the same reason, we are disabling OpenEXR
     # -DOpenEXR_LIBRARY="$env:VCPKG_INSTALLED\lib\OpenEXR-3_2.lib" `
     # -DOpenEXR_INCLUDE_DIR="$env:VCPKG_INSTALLED\include\OpenEXR" `
@@ -410,6 +419,7 @@ function Build-Gdal {
         $env:PROJ_ROOT $env:MYSQL_LIBRARY `
         $env:Poppler_INCLUDE_DIR $env:Poppler_LIBRARY `
         -DGDAL_USE_KEA=OFF `
+        -DGDAL_USE_POSTGRESQL=OFF `
         -DGDAL_USE_ZLIB_INTERNAL=ON `
         -DGDAL_CSHARP_APPS=ON `
         -DGDAL_CSHARP_TESTS=OFF `
@@ -468,6 +478,8 @@ function Build-CsharpBindings {
     exec { & nmake -f collect-deps-makefile.vc }
 
     Get-CollectDeps "$env:GDAL_INSTALL_DIR\bin\gdal.dll" "$outputPath"
+
+    Assert-NoBundledLibpq -outputPath $outputPath
 
     Build-GenerateProjectFiles -packageVersion $packageVersion -preRelease $preRelease
 
@@ -587,6 +599,27 @@ function Copy-DependentDLLs {
             $dllProcessed[$fileName] = $true
         }        
     }
+}
+
+# GDAL is configured with -DGDAL_USE_POSTGRESQL=OFF on Windows, so no build step may pull
+# the GisInternals SDK's LIBPQ.dll into the runtime package. Shipping that stale client
+# library is exactly what https://github.com/MaxRev-Dev/gdal.netcore/issues/241 reported,
+# so fail the build loudly instead of publishing it again.
+function Assert-NoBundledLibpq {
+    param (
+        [string] $outputPath
+    )
+
+    $bundled = Get-ChildItem -Path $outputPath -Filter "*pq*.dll" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^(lib)?pq.*\.dll$' }
+
+    if ($bundled) {
+        $names = ($bundled | ForEach-Object { $_.Name }) -join ", "
+        Write-BuildError "PostgreSQL client library found in the package output: $names"
+        throw "libpq must not be bundled on Windows while GDAL_USE_POSTGRESQL is OFF"
+    }
+
+    Write-BuildInfo "Verified no PostgreSQL client library in $outputPath"
 }
 
 function Get-CollectDeps {
