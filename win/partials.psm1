@@ -407,8 +407,19 @@ function Build-Gdal {
     # -DOpenEXR_HALF_LIBRARY="$env:VCPKG_INSTALLED\lib\Imath-3_1.lib" `
     # -DOpenEXR_IEX_LIBRARY="$env:VCPKG_INSTALLED\lib\Iex-3_2.lib" `
 
+    # SWIG locates its .swg library relative to the invoked executable. A package manager
+    # shim (WinGet installs one under Links\) resolves to a Lib directory that does not
+    # exist, so hand CMake the real binary behind any symlink.
+    $swigCommand = Get-Command swig -ErrorAction Stop
+    $swigExecutable = (Get-Item $swigCommand.Source).LinkTarget
+    if (-not $swigExecutable) { $swigExecutable = $swigCommand.Source }
+    $swigDir = Join-Path (Split-Path $swigExecutable -Parent) "Lib"
+    Write-BuildInfo "Using SWIG at $swigExecutable (library: $swigDir)"
+
     cmake -G "$env:VS_VERSION" -A $env:CMAKE_ARCHITECTURE "$env:GDAL_SOURCE" `
         $env:CMAKE_INSTALL_PREFIX -DCMAKE_BUILD_TYPE=Release -Wno-dev `
+        -DSWIG_EXECUTABLE="$swigExecutable" `
+        -DSWIG_DIR="$swigDir" `
         -DCMAKE_C_FLAGS="$env:ARCH_FLAGS" `
         -DCMAKE_CXX_FLAGS="$env:ARCH_FLAGS" `
         -DCMAKE_PREFIX_PATH="${env:VCPKG_INSTALLED};${env:SDK_PREFIX}" `

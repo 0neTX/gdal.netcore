@@ -14,7 +14,7 @@ In this folder contains Powershell and NMake scripts for building Windows runtim
 
 ### Prerequisites:
 
-1. [Visual Studio Build Tools (with ATL)](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16). Recommended versions - vs16.0(2019) and vs17.0(2022) or greater (**nmake** and to retarget **libpng** to v143 toolset)
+1. [Visual Studio Build Tools (with ATL)](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=17). **vs17.0(2022) or greater is required** (**nmake** and to retarget **libpng** to v143 toolset). The build initializes the 2022 environment explicitly rather than letting the toolset be auto-detected: the `arrow` dependency pulls in `xsimd`, whose C++20 templates do not compile under the vs16.0(2019) toolset, so a machine with both installed must not fall back to 2019.
 
 2. [.NET Core SDK](https://dotnet.microsoft.com/en-us/download/dotnet/7.0) and [Nuget.exe](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools) - for building and publishing packages respectively.
 
@@ -61,6 +61,24 @@ If everything runs smoothly, you can use a local nuget feed to include packages 
 
 ### Troubleshooting dependencies:
 Use **dumpbin** or [**dependency walker**](https://www.dependencywalker.com/) to check gdal's dependencies. Please ensure the tests are passing before bringing them to prod.
+
+#### SWIG reports `Unable to find 'swig.swg'`
+
+SWIG locates its `.swg` library relative to the executable it was invoked through, so an
+installation reached via a package manager shim breaks it. WinGet, for example, puts a
+symlink at `%LOCALAPPDATA%\Microsoft\WinGet\Links\swig.exe`; SWIG then looks for its
+library under `Links\Lib`, which does not exist, and the C# binding generation fails while
+CMake still reports SWIG as found.
+
+The build resolves the symlink and passes the real binary to CMake via `SWIG_EXECUTABLE`.
+To check what an installation resolves to:
+
+```powershell
+swig -swiglib   # must print a directory that actually contains swig.swg
+```
+
+Note that the environment variable SWIG reads is `SWIG_LIB`, not `SWIGLIB`, and that SWIG
+has no `-L` option for this — library directories are added with `-I`.
 
 Have fun)
 

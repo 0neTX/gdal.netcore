@@ -178,8 +178,8 @@ Combining these abbreviations, you get:
 | PNM             | rw+v           | rw+v            | rw+v           | ✗              | ✗               | ✗              |
 | PRF             | rov            | rov             | rov            | ✗              | ✗               | ✗              |
 | Parquet         | ✗              | ✗               | ✗              | rw+uv          | rw+uv           | rw+uv          |
-| PostGISRaster   | rws            | rws             | rws            | ✗              | ✗               | ✗              |
-| PostgreSQL      | ✗              | ✗               | ✗              | rw+u           | rw+u            | rw+u           |
+| PostGISRaster   | rws            | rws             | ✗              | ✗              | ✗               | ✗              |
+| PostgreSQL      | ✗              | ✗               | ✗              | rw+u           | rw+u            | ✗              |
 | RCM             | rovs           | rovs            | rovs           | ✗              | ✗               | ✗              |
 | RIK             | rov            | rov             | rov            | ✗              | ✗               | ✗              |
 | RMF             | rw+v           | rw+v            | rw+v           | ✗              | ✗               | ✗              |

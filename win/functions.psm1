@@ -118,7 +118,7 @@ function Set-ReplaceContentInFilesByRegex {
 
 function Get-VisualStudioVars {
     Write-BuildStep "Setting Visual Studio Environment"
-    Import-VisualStudioVars -Architecture $env:CMAKE_ARCHITECTURE
+    Import-VisualStudioVars -VisualStudioVersion 2022 -Architecture $env:CMAKE_ARCHITECTURE
     Write-BuildStep "Visual Studio Environment was initialized"
 }
 
